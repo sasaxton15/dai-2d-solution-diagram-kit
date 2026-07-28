@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>2D Solution Diagram — Template</title>
+<!--
+  2D SOLUTION DIAGRAM — BLANK TEMPLATE
+  Fork this file. Rename the #dgm scope, swap the labels, re-point the paths.
+
+  Contract this template implements (see docs/ for the full spec):
+    · 1240x700 canvas, absolutely positioned nodes, ResizeObserver scaling
+    · Three semantic lanes: source (left) -> hub (centre) -> destinations (right)
+    · One sidecar lane below the hub
+    · Exactly ONE .primary node — the hub anchor
+    · IntersectionObserver pauses the loop offscreen
+    · prefers-reduced-motion hard-disables all motion
+
+  Colours below are BRAND-NEUTRAL PLACEHOLDERS. Replace the three semantic
+  hues with your own. Keep the roles: one hue for source, one for the hub,
+  one for the sidecar. Do not add a fourth.
+-->
+<style>
+/* Everything is scoped to #dgm. Renaming the scope is step 1 of forking.
+   A partial rename is how styles leak into the host page. */
+#dgm{
+  /* ---- surfaces ---- */
+  --canvas:#0D1119;
+  --ink:#FFFFFF;
+  --muted:#8B93A7;
+  --border:#2C3548;
+  --node:#151C29;
+
+  /* ---- semantic hues (REPLACE THESE) ---- */
+  --source:#3B82F6;          /* left lane  — where work originates */
+  --hub:#E5484D;             /* centre     — the thing that connects */
+  --sidecar:#8B5CF6;         /* below      — partner / policy layer */
+
+  --hub-tint:rgba(229,72,77,.10);
+  --hub-line:rgba(229,72,77,.65);
+  --sidecar-line:#D9CBF2;
+
+  position:relative;width:100%;
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  line-height:1.4;-webkit-font-smoothing:antialiased;
+  color:var(--ink);
+}
+#dgm *,#dgm *::before,#dgm *::after{box-sizing:border-box;}
+
+#dgm .dgm-stage{position:relative;width:1240px;height:700px;
+  transform-origin:top left;background:var(--canvas);border-radius:12px;}
+#dgm .dgm-fit{position:relative;width:100%;overflow:hidden;border-radius:12px;}
+
+#dgm .dgm-svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+#dgm .dgm-svg path{fill:none;stroke-linecap:round;transition:opacity .4s,stroke-width .4s;}
+#dgm .dgm-svg path[data-c="s"]{stroke:var(--source);stroke-width:2;opacity:.6;}
+#dgm .dgm-svg path[data-c="h"]{stroke:var(--hub);stroke-width:2;opacity:.72;}
+#dgm .dgm-svg path[data-c="p"]{stroke:var(--sidecar);stroke-width:1.75;opacity:.55;stroke-dasharray:5 5;}
+#dgm .dgm-svg path.hot{opacity:1;}
+#dgm .dgm-svg path[data-c="h"].hot{stroke-width:3;stroke-dasharray:7 9;animation:dgmdash 1.05s linear infinite;}
+#dgm .dgm-svg path[data-c="s"].hot{stroke-width:3;stroke-dasharray:7 9;animation:dgmdash 1.15s linear infinite;}
+@keyframes dgmdash{to{stroke-dashoffset:-32;}}
+
+/* ---- zones ---- */
+#dgm .dgm-zone{position:absolute;border-radius:12px;border:1px solid var(--border);
+  background:#131925;transition:border-color .45s,background .45s,box-shadow .45s;}
+#dgm .dgm-zone.z-hub{background:var(--hub-tint);border-color:var(--hub-line);
+  border-left:3px solid var(--hub);}
+#dgm .dgm-zone.z-side{background:rgba(139,92,246,.05);
+  border:1px dashed var(--sidecar-line);border-radius:10px;}
+#dgm .dgm-zone.z-side.hot{border-color:var(--sidecar);background:rgba(139,92,246,.12);}
+#dgm .dgm-zone.hot{border-color:var(--hub-line);box-shadow:0 0 0 1px var(--hub-tint);}
+#dgm .dgm-zt{position:absolute;top:14px;left:16px;font-size:8.5px;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);}
+#dgm .dgm-zt.on{color:var(--ink);}
+
+/* ---- nodes ---- */
+#dgm .dgm-node{position:absolute;background:var(--node);border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;transition:border-color .35s,background .35s,box-shadow .35s;}
+#dgm .dgm-node b{display:block;font-size:11.5px;font-weight:600;color:var(--ink);line-height:1.2;}
+#dgm .dgm-node span{display:block;font-size:7px;font-weight:600;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-top:2px;line-height:1.2;}
+#dgm .dgm-node.lit{border-color:var(--hub);background:#241016;}
+/* exactly one .primary per diagram */
+#dgm .dgm-node.primary{background:var(--hub);border-color:var(--hub);
+  box-shadow:0 0 0 1px var(--hub-tint);}
+#dgm .dgm-node.primary b{color:#fff;font-size:12.5px;}
+#dgm .dgm-node.primary span{color:rgba(255,255,255,.85);}
+#dgm .dgm-node.primary.lit{box-shadow:0 0 0 4px rgba(229,72,77,.28);}
+
+/* ---- destination chips ---- */
+#dgm .dgm-tile{position:absolute;height:32px;background:#ECEEF1;border:1px solid #D3D7DE;
+  border-radius:8px;display:flex;align-items:center;gap:7px;padding:0 10px;transition:box-shadow .35s;}
+#dgm .dgm-tile b{font-size:10px;font-weight:600;color:#131925;line-height:1.15;white-space:nowrap;}
+#dgm .dgm-tile.lit{box-shadow:0 0 0 2px var(--hub-line);}
+
+/* ---- optional hover definitions ---- */
+#dgm .dgm-node.has-tip{cursor:help;}
+#dgm .dgm-node.has-tip:hover{border-color:var(--hub);box-shadow:0 0 0 3px var(--hub-tint);z-index:60;}
+#dgm .dgm-node.has-tip:focus-visible{outline:2px solid var(--hub);outline-offset:2px;}
+#dgm .dgm-tip{position:absolute;left:calc(100% + 12px);top:50%;transform:translateY(-50%) scale(.98);
+  width:210px;background:#0B0F17;border:1px solid var(--border);border-radius:8px;padding:11px 13px;
+  font-size:10.5px;line-height:1.45;color:var(--muted);opacity:0;visibility:hidden;
+  transition:opacity .18s,transform .18s;z-index:70;}
+#dgm .dgm-node.has-tip:hover .dgm-tip,
+#dgm .dgm-node.has-tip:focus-within .dgm-tip{opacity:1;visibility:visible;transform:translateY(-50%) scale(1);}
+
+/* ---- accessibility contract: motion off means motion off ---- */
+@media (prefers-reduced-motion: reduce){
+  #dgm .dgm-svg path,#dgm .dgm-zone,#dgm .dgm-node,#dgm .dgm-tile{
+    transition:none!important;animation:none!important;}
+  #dgm .dgm-svg path{opacity:.85;}
+}
+</style>
+</head>
+<body style="margin:0;background:#07090e;padding:28px;">
+
+<div id="dgm">
+  <div class="dgm-fit">
+    <div class="dgm-stage" id="dgm-stage">
+
+      <svg class="dgm-svg" viewBox="0 0 1240 700" preserveAspectRatio="none" aria-hidden="true">
+        <!-- source -> hub -->
+        <path data-c="s" d="M 318 250 C 440 250 470 300 596 300"/>
+        <path data-c="s" d="M 318 360 C 440 360 470 330 596 330"/>
+        <!-- hub -> destinations (fan-out from a single junction) -->
+        <path data-c="h" d="M 832 315 C 920 315 930 100 1004 100"/>
+        <path data-c="h" d="M 832 315 C 920 315 930 250 1004 250"/>
+        <path data-c="h" d="M 832 315 C 920 315 930 420 1004 420"/>
+        <!-- hub -> sidecar -->
+        <path data-c="p" d="M 714 472 C 714 520 760 528 806 528"/>
+        <!-- fan-out junction port -->
+        <circle cx="832" cy="315" r="4" fill="var(--hub)"/>
+      </svg>
+
+      <!-- ===== SOURCE LANE ===== -->
+      <div class="dgm-zone" style="left:50px;top:180px;width:268px;height:250px;">
+        <div class="dgm-zt" id="zt-src">Source lane</div>
+      </div>
+      <div class="dgm-node" style="left:66px;top:212px;width:236px;">
+        <b>Source node one</b><span>Sub-label</span></div>
+      <div class="dgm-node" style="left:66px;top:270px;width:236px;">
+        <b>Source node two</b><span>Sub-label</span></div>
+      <div class="dgm-node" style="left:66px;top:328px;width:236px;">
+        <b>Source node three</b><span>Sub-label</span></div>
+
+      <!-- ===== HUB LANE — the only saturated element ===== -->
+      <div class="dgm-zone z-hub" id="z-hub" style="left:596px;top:150px;width:236px;height:322px;">
+        <div class="dgm-zt on" id="zt-hub">Hub lane</div>
+      </div>
+      <div class="dgm-node primary has-tip" id="hub-primary" tabindex="0"
+           style="left:612px;top:186px;width:204px;">
+        <b>Primary hub node</b><span>The connective layer</span>
+        <div class="dgm-tip" role="tooltip">Replace with a one-sentence definition. Tooltips
+          open on hover <em>and</em> keyboard focus — never put essential information here only.</div>
+      </div>
+      <div class="dgm-node" style="left:612px;top:252px;width:204px;"><b>Capability one</b><span>Detail</span></div>
+      <div class="dgm-node" style="left:612px;top:312px;width:204px;"><b>Capability two</b><span>Detail</span></div>
+      <div class="dgm-node" style="left:612px;top:372px;width:204px;"><b>Capability three</b><span>Detail</span></div>
+
+      <!-- ===== DESTINATION GROUPS ===== -->
+      <div class="dgm-zone" id="g0" style="left:1004px;top:52px;width:190px;height:96px;">
+        <div class="dgm-zt">Destination group A</div></div>
+      <div class="dgm-tile" data-g="0" style="left:1020px;top:84px;width:158px;"><b>Item A1</b></div>
+      <div class="dgm-tile" data-g="0" style="left:1020px;top:110px;width:158px;"><b>Item A2</b></div>
+
+      <div class="dgm-zone" id="g1" style="left:1004px;top:202px;width:190px;height:96px;">
+        <div class="dgm-zt">Destination group B</div></div>
+      <div class="dgm-tile" data-g="1" style="left:1020px;top:234px;width:158px;"><b>Item B1</b></div>
+      <div class="dgm-tile" data-g="1" style="left:1020px;top:260px;width:158px;"><b>Item B2</b></div>
+
+      <div class="dgm-zone" id="g2" style="left:1004px;top:372px;width:190px;height:96px;">
+        <div class="dgm-zt">Destination group C</div></div>
+      <div class="dgm-tile" data-g="2" style="left:1020px;top:404px;width:158px;"><b>Item C1</b></div>
+      <div class="dgm-tile" data-g="2" style="left:1020px;top:430px;width:158px;"><b>Item C2</b></div>
+
+      <!-- ===== SIDECAR ===== -->
+      <div class="dgm-zone z-side" id="z-side" style="left:806px;top:496px;width:280px;height:66px;">
+        <div class="dgm-zt">Sidecar lane</div></div>
+      <div class="dgm-tile" id="side-tile" style="left:822px;top:524px;width:248px;"><b>Partner or policy layer</b></div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var root  = document.getElementById('dgm');
+  var stage = document.getElementById('dgm-stage');
+  var fit   = root.querySelector('.dgm-fit');
+  var BASE_W = 1240, BASE_H = 700;
+
+  /* --- responsive: scale the fixed canvas, never re-layout --- */
+  function fitScale(){
+    var s = fit.clientWidth / BASE_W;
+    stage.style.transform = 'scale(' + s + ')';
+    fit.style.height = (BASE_H * s) + 'px';
+  }
+  if (window.ResizeObserver) new ResizeObserver(fitScale).observe(fit);
+  window.addEventListener('resize', fitScale);
+  fitScale();
+
+  /* --- respect the user's motion preference --- */
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  var paths  = root.querySelectorAll('.dgm-svg path');
+  var groups = ['g0','g1','g2'].map(function(id){ return document.getElementById(id); });
+  var tiles  = root.querySelectorAll('.dgm-tile[data-g]');
+  var hubZone = document.getElementById('z-hub');
+  var hubNode = document.getElementById('hub-primary');
+  var sideZone = document.getElementById('z-side');
+  var sideTile = document.getElementById('side-tile');
+  var timers = [], step = 0, running = false;
+
+  function later(fn, ms){ timers.push(setTimeout(fn, ms)); }
+  function clearAll(){
+    timers.forEach(clearTimeout); timers = [];
+    paths.forEach(function(p){ p.classList.remove('hot'); });
+    groups.forEach(function(g){ g.classList.remove('hot'); });
+    tiles.forEach(function(t){ t.classList.remove('lit'); });
+    hubZone.classList.remove('hot'); hubNode.classList.remove('lit');
+    sideZone.classList.remove('hot'); sideTile.classList.remove('lit');
+  }
+  function hot(sel, on){
+    root.querySelectorAll(sel).forEach(function(el){ el.classList.toggle('hot', on !== false); });
+  }
+
+  /* --- the choreography IS the story: request -> hub -> route -> return --- */
+  function cycle(){
+    if (!running) return;
+    clearAll();
+    var g = step % groups.length; step++;
+
+    hot('.dgm-svg path[data-c="s"]');                        // 1 request leaves the source
+    later(function(){ hubZone.classList.add('hot'); }, 420);  // 2 hub acknowledges
+    later(function(){ hubNode.classList.add('lit'); }, 700);  // 3 hub intensifies
+    later(function(){                                         // 4 one route fires
+      var p = root.querySelectorAll('.dgm-svg path[data-c="h"]')[g];
+      if (p) p.classList.add('hot');
+    }, 1000);
+    later(function(){                                         // 5 destination brightens
+      groups[g].classList.add('hot');
+      root.querySelectorAll('.dgm-tile[data-g="' + g + '"]').forEach(function(t){ t.classList.add('lit'); });
+    }, 1350);
+    later(function(){                                         // 6 sidecar checks policy
+      sideZone.classList.add('hot'); sideTile.classList.add('lit');
+      hot('.dgm-svg path[data-c="p"]');
+    }, 1650);
+    later(cycle, 3400);                                       // 7 pause, then repeat
+  }
+
+  function start(){ if (running || reduce.matches) return; running = true; cycle(); }
+  function stop(){ running = false; clearAll(); }
+
+  /* --- never animate offscreen --- */
+  if (window.IntersectionObserver){
+    new IntersectionObserver(function(entries){
+      entries[0].isIntersecting ? start() : stop();
+    }, { threshold: 0.15 }).observe(root);
+  } else { start(); }
+
+  reduce.addEventListener('change', function(){ reduce.matches ? stop() : start(); });
+})();
+</script>
+</body>
+</html>
