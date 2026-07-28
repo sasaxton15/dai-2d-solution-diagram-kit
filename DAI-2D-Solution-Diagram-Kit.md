@@ -1,4 +1,4 @@
-# Equinix Distributed AI — 2D Solution Diagram Kit
+# dai-2d-solution-diagram-kit
 
 **Status:** Internal working spec · **Owner:** Saxton Randle-Sims (DAI PMM)
 **Last updated:** 2026-07-28
