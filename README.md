@@ -3,10 +3,10 @@
 A repeatable method for building animated 2D architecture diagrams that read
 correctly in seconds — plus a working template you can fork.
 
-**Fork `template/diagram-template.html`, rename the scope, swap the labels.**
+**Fork `diagram-template.html`, rename the scope, swap the labels.**
 Everything else in this repo explains why the template is shaped the way it is.
 
-![The template, mid-cycle](docs/template-preview.png)
+![The template, mid-cycle](template-preview.png)
 
 *The template running, captured mid-animation: one route lit toward a rotating
 destination, the hub as the only saturated element, the sidecar checking policy.*
@@ -118,7 +118,7 @@ Non-negotiable, all three implemented in the template:
 ## Quickstart
 
 ```
-cp template/diagram-template.html my-diagram.html
+cp diagram-template.html my-diagram.html
 ```
 
 Then:
@@ -145,17 +145,17 @@ Then:
 ## What's in here
 
 ```
-├── README.md                        the method (this file)
-├── SKILL.md                         Claude Skill — auto-triggers on diagram work
-├── template/
-│   └── diagram-template.html        working, brand-neutral, fork this
-├── docs/
-│   ├── design-system.md             tokens, type scale, zone and node specs
-│   ├── connectors.md                path geometry and state machine
-│   └── accessibility.md             the motion and keyboard contract
-└── examples/
-    └── walkthrough.md               building a diagram start to finish
+README.md                the method (this file)
+SKILL.md                 Claude Skill — auto-triggers on diagram work
+diagram-template.html    working, brand-neutral, fork this
+design-system.md         tokens, type scale, zone and node specs
+connectors.md            path geometry and state machine
+accessibility.md         the motion and keyboard contract
+walkthrough.md           building a diagram start to finish
+template-preview.png     the template running, used above
 ```
+
+Flat on purpose. Eight files don't need a folder tree.
 
 ---
 

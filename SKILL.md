@@ -11,7 +11,7 @@ template; do not start from a blank file.
 ## Before writing any code
 
 1. Read `README.md` for the method.
-2. Copy `template/diagram-template.html` — it already implements the whole contract.
+2. Copy `diagram-template.html` — it already implements the whole contract.
 3. Identify the three lanes for **this** diagram: what is the source, what is the
    hub, what are the destinations. If you cannot name a single hub, the diagram
    is not ready to draw yet — resolve that first.
